@@ -1,4 +1,3 @@
-# core/recommend/likes.py
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect
 from core.models.reviews import Likes
@@ -17,6 +16,6 @@ def toggle_preference(request, game_id, vote_type):
             existing.vote = vote_value
             existing.save()
     else:
-        Preference.objects.create(user=request.user, game=game, vote=vote_value)
+        Likes.objects.create(user=request.user, game=game, vote=vote_value)
 
     return redirect(request.META.get('HTTP_REFERER', "home"))
