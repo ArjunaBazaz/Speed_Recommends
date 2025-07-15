@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Welcome to Speed Recommends!</h1>
+  {% if not user.is_authenticated %}
+    <p>Please <a href="{% url 'account_login' %}">log in</a> or
+      <a href="{% url 'account_signup' %}">sign up</a>.</p>
+  {% endif %}
+{% endblock %}

@@ -8,4 +8,4 @@ def search_games(request):
     return JsonResponse({'message': 'Search endpoint works!'})
 
 def home(request):
-    return JsonResponse({"message": "Welcome to Speed Recommends!"})
+    return render(request, "home.html")
