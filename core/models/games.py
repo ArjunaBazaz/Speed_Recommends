@@ -36,3 +36,16 @@ class Game(models.Model):
         indexes = [
             models.Index(fields=["genre", "release_date"]),
         ]
+
+    def context_for_user(self, user):
+        """Return a dict of everything templates need for this game."""
+        user_pref = self.preference_set.filter(user=user).first()
+        user_review = self.review_set.filter(user=user).first()
+        other_reviews = self.review_set.exclude(user=user)
+
+        return {
+            "game": self,
+            "user_pref": user_pref,
+            "user_review": user_review,
+            "reviews": other_reviews,
+        }

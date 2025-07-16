@@ -5,7 +5,7 @@ from core.models.games import Game
 from django.utils import timezone
 
 @login_required
-def add_review(request, game_id):
+def add_review_1(request, game_id):
     game = get_object_or_404(Game, id=game_id)
     score = request.POST.get('score')
     text = request.POST.get('review_text', '')
