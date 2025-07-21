@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import dj_database_url
+from urllib.parse import quote_plus
 from dotenv import load_dotenv
 import os
 
@@ -24,10 +25,11 @@ load_dotenv()
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+IS_HEROKU = os.getenv('DYNO') is not None
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-key")
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1")
 
-ALLOWED_HOSTS = ['speed-recommends.herokuapp.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['speed_recommends.herokuapp.com', 'localhost', '127.0.0.1']
 
 # Application definition
 
@@ -79,19 +81,17 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "speed_recommends.wsgi.application"
 
+conn_string = f"postgres://{os.getenv('DB_USER')}:{quote_plus(os.getenv('DB_PASSWORD'))}@{os.getenv('DB_HOST', 'localhost')}:{os.getenv('DB_PORT', '5432')}/{os.getenv('DB_NAME')}"
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
-    }
+    'default': dj_database_url.config(
+        default=conn_string,
+        conn_max_age=600,
+        ssl_require=IS_HEROKU
+    )
 }
 
 # Password validation
@@ -151,8 +151,6 @@ ACCOUNT_SIGNUP_FIELDS = ["username*", "email*", "password1*", "password2*"]
 LOGIN_REDIRECT_URL = "/"
 ACCOUNT_LOGIN_REDIRECT_URL = "/"
 ACCOUNT_LOGOUT_REDIRECT_URL = "/"
-
-DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
