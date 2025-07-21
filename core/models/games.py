@@ -10,22 +10,22 @@ class Game(models.Model):
     platform = models.CharField(max_length=100, db_index=True)
 
     # Many-to-many with through model to hold votes
-    preferences = models.ManyToManyField(
+    likes = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
-        through='Preference',
-        related_name='preferred_games'
+        through='core.Likes',
+        related_name='liked_games'
     )
 
     @property
     def likes_count(self):
-        return self.preference_set.filter(vote=Likes.LIKE).count()
+        return self.likes.filter(vote=Likes.LIKE).count()
 
     @property
     def dislikes_count(self):
-        return self.preference_set.filter(vote=Likes.DISLIKE).count()
+        return self.likes.filter(vote=Likes.DISLIKE).count()
 
     def user_vote(self, user):
-        pref = self.preference_set.filter(user=user).first()
+        pref = Likes.objects.filter(user=user, game=self).first()
         return pref.vote if pref else None
 
     def __str__(self):
@@ -39,9 +39,9 @@ class Game(models.Model):
 
     def context_for_user(self, user):
         """Return a dict of everything templates need for this game."""
-        user_pref = self.preference_set.filter(user=user).first()
-        user_review = self.review_set.filter(user=user).first()
-        other_reviews = self.review_set.exclude(user=user)
+        user_pref = Likes.objects.filter(user=user, game=self).first()
+        user_review = self.reviews.filter(user=user).first()
+        other_reviews = self.reviews.exclude(user=user)
 
         return {
             "game": self,

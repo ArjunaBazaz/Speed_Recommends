@@ -1,9 +1,5 @@
-from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
-from django.core.mail import send_mail
-from django.db.models.signals import post_delete
-from django.dispatch import receiver
 
 # Adapted from https://www.pyphilly.org/know-thy-user-custom-user-models-django-allauth/
 
@@ -60,6 +56,8 @@ class RecommendSiteUser(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = "username"
 
     objects = RecommendSiteUserManager()
+
+    interaction_count = models.PositiveIntegerField(default=0)
 
     def get_full_name(self):
         return self.first_name + " " + self.last_name

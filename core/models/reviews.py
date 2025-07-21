@@ -3,7 +3,7 @@ from django.db import models
 
 class Review(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    game = models.ForeignKey("core.Game", on_delete=models.CASCADE, related_name="preferences")
+    game = models.ForeignKey("core.Game", on_delete=models.CASCADE, related_name="reviews")
     reviewTime = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -40,7 +40,7 @@ class Likes(models.Model):
     VOTES = ((DISLIKE, "Dislike"), (LIKE, "Like"))
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    game = models.ForeignKey("core.Game", on_delete=models.CASCADE, related_name="preferences")
+    game = models.ForeignKey("core.Game", on_delete=models.CASCADE, related_name="likes_set")
     vote = models.SmallIntegerField(choices=VOTES)
     created_at = models.DateTimeField(auto_now_add=True)
 

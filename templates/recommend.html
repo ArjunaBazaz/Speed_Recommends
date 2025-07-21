@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Recommend{% endblock %}
+{% block content %}
+  {% if games %}
+    {% with game=games.0 %}
+      <div class="card">
+        <div class="card-body">
+          <h3>{{ game.title }}</h3>
+          <p><strong>Genre:</strong> {{ game.genre }}</p>
+          <p><strong>Platform:</strong> {{ game.platform }}</p>
+
+          <form class="d-inline" method="post"
+                action="{% url 'core:toggle_game_like' game.id 'like' %}">
+            {% csrf_token %}<button class="btn btn-success">👍 Like</button>
+          </form>
+
+          <form class="d-inline" method="post"
+                action="{% url 'core:toggle_game_like' game.id 'dislike' %}">
+            {% csrf_token %}<button class="btn btn-danger">👎 Dislike</button>
+          </form>
+        </div>
+      </div>
+    {% endwith %}
+  {% else %}
+      <p>No more games to rate. Come back later!</p>
+  {% endif %}
+{% endblock %}

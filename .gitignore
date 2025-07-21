@@ -1,2 +1,13 @@
 .venv
 .env*
+*.py[cod]
+*.sqlite3
+*.log
+db.sqlite3
+venv/
+env/
+*.pyc
+postgres_data/
+.vscode/
+.idea/
+*.code-workspace

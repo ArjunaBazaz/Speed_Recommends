@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Search{% endblock %}
+{% block content %}
+<form class="form-inline mb-3" method="get">
+  <input type="text" name="q" value="{{ query }}" class="form-control mr-2" placeholder="Search games…">
+  <button class="btn btn-primary">Search</button>
+</form>
+
+{% for game in games %}
+  <div class="card mb-2">
+    <div class="card-body d-flex justify-content-between">
+      <div>
+        <a href="{% url 'core:game_detail' game.id %}"><strong>{{ game.title }}</strong></a>
+        <small class="text-muted">({{ game.platform }})</small>
+      </div>
+      <form method="post" action="{% url 'core:save_game' game.id %}">
+        {% csrf_token %}
+        <button class="btn btn-outline-success btn-sm">Add ➕</button>
+      </form>
+    </div>
+  </div>
+{% empty %}
+  <p>No games match your query.</p>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ game.title }}{% endblock %}
+{% block content %}
+<h2>{{ game.title }}</h2>
+<p><strong>Genre:</strong> {{ game.genre }} – <strong>Platform:</strong> {{ game.platform }}</p>
+
+{% if user.is_authenticated %}
+  <h4>Your Review</h4>
+  <form method="post" action="{% url 'core:add_review' game.id %}">
+    {% csrf_token %}
+    <div class="form-group">
+      <label>Score (1-10):</label>
+      <input type="number" name="score" min="1" max="10" class="form-control" value="{{ user_review.score|default:'' }}">
+    </div>
+    <div class="form-group">
+      <textarea name="review_text" class="form-control" placeholder="Write your review…">{{ user_review.text|default:'' }}</textarea>
+    </div>
+    <button class="btn btn-primary">Save Review</button>
+  </form>
+{% endif %}
+
+<hr>
+<h4>Other Reviews</h4>
+{% for r in reviews %}
+  <div class="border p-2 mb-2">
+    <strong>{{ r.user.username }}</strong> – <em>{{ r.scores }}/10</em><br>
+    {{ r.review_text }}
+  </div>
+{% empty %}
+  <p>No reviews yet.</p>
+{% endfor %}
+{% endblock %}

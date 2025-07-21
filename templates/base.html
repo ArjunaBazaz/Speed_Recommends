@@ -1,16 +1,28 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Speed Recommends</title>
+  <meta charset="utf-8">
+  <title>{% block title %}Speed Recommends{% endblock %}</title>
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css">
+  {% block extra_css %}{% endblock %}
 </head>
 <body>
-  {% if user.is_authenticated %}
-    Hi, {{ user.username }} | <a href="{% url 'account_logout' %}">Logout</a>
-  {% else %}
-    <a href="{% url 'account_login' %}">Login</a> |
-    <a href="{% url 'account_signup' %}">Signup</a>
-  {% endif %}
-  <hr/>
+<nav class="navbar navbar-expand navbar-dark bg-dark">
+  <a class="navbar-brand" href="{% url 'core:home' %}">🏠</a>
+  <ul class="navbar-nav mr-auto">
+    <li class="nav-item"><a class="nav-link" href="{% url 'core:recommend_game' %}">Recommend</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'core:search_games' %}">Search</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'core:home' %}">My Games</a></li>
+  </ul>
+  <span class="navbar-text">{{ request.user.username }}</span>
+</nav>
+
+<div class="container pt-3">
   {% block content %}{% endblock %}
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+{% block extra_js %}{% endblock %}
 </body>
 </html>

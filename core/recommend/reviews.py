@@ -16,7 +16,7 @@ def add_review_1(request, game_id):
 
     review, created = Review.objects.get_or_create(
         user=request.user, game=game,
-        defaults={'scores': score, 'review_text': text, 'reviewTime': timezone.now()}
+        defaults={'score': score, 'text': text, 'reviewTime': timezone.now()}
     )
 
     if not created:
@@ -25,4 +25,4 @@ def add_review_1(request, game_id):
         review.reviewTime = timezone.now()
         review.save()
 
-    return redirect('game_detail', game_id=game.id)
+    return redirect('core:game_detail', game_id=game.id)
