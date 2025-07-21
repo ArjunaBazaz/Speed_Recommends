@@ -27,7 +27,7 @@ load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-key")
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1")
 
-ALLOWED_HOSTS = ['speed-recommends.herokuapp.com', 'localhost']
+ALLOWED_HOSTS = ['speed-recommends.herokuapp.com', 'localhost', '127.0.0.1']
 
 # Application definition
 
