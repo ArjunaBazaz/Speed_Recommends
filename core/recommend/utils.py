@@ -42,6 +42,7 @@ def recommend_content_based(user, top_n=10):
 
     return sorted(results, key=lambda x: -x[1])[:top_n]
 
+
 # def recommend_collaborative(user, top_n=10):
 #     reviews = Review.objects.all().values_list('user_id', 'game_id', 'score')
 #     reader = Reader(rating_scale=(1, 10))
