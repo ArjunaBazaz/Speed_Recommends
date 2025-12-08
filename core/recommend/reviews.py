@@ -12,9 +12,10 @@ def add_review_1(request, game_id):
         return redirect("core:game_detail", game_id=game.id)
 
     score = request.POST.get("score")
-    text = request.POST.get("text", "")
+    text = request.POST.get("text", "").strip()
 
-    if not score:
+    if (not score or score.strip() == "") and text == "":
+        Review.objects.filter(user=request.user, game=game).delete()
         return redirect("core:game_detail", game_id=game.id)
 
     review, created = Review.objects.get_or_create(

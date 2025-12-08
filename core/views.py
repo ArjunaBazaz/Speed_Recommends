@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from core.models.games import Game
 from django.urls import reverse
 from core.models.saved import SavedGame
+from core.models.reviews import Review
 from core.recommend.reviews import add_review_1
 from core.recommend.likes import toggle_preference
 from core.recommend.utils import recommend_next
@@ -12,11 +13,38 @@ from core.search.search import search_games_either
 
 def home(request):
     if request.user.is_authenticated:
-        saved_ids = list(request.user.savedgame_set.values_list("game_id", flat=True))
-        games = Game.objects.filter(id__in=saved_ids)
+        user = request.user
+
+        reviewed_games = (
+            Review.objects
+            .filter(user=user)
+            .select_related("game")
+            .values_list("game_id", flat=True)
+        )
+
+        played_games = (
+            SavedGame.objects
+            .filter(user=user, game_id__in=reviewed_games)
+            .select_related("game")
+        )
+
+        saved_games = (
+            SavedGame.objects
+            .filter(user=user)
+            .exclude(game_id__in=reviewed_games)
+            .select_related("game")
+        )
+
+        return render(
+            request,
+            "home.html",
+            {
+                "played_games": played_games,
+                "saved_games": saved_games,
+            }
+        )
     else:
-        games = Game.objects.all()[:100]
-    return render(request, "home.html", {"games": games})
+        return render(request, "home.html", {"games": Game.objects.all()[:100]})
 
 @login_required
 def search_games(request):
@@ -69,7 +97,6 @@ def vote_game(request, game_id, vote_type):
 
 @login_required
 def add_review(request, game_id):
-    save_game_for_user(request.user, get_object_or_404(Game, id=game_id))
     return add_review_1(request, game_id)
 
 @login_required

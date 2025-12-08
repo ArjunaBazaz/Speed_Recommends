@@ -1,19 +1,47 @@
 {% extends "base.html" %}
-{% block title %}My Games{% endblock %}
-{% block content %}
-<h2>Saved &amp; Liked Games</h2>
+{% block title %}Home{% endblock %}
 
-{% for game in games %}
-  <div class="card mb-2">
-    <div class="card-body d-flex justify-content-between">
-      <a href="{% url 'core:game_detail' game.id %}">{{ game.title }}</a>
-      <form method="post" action="{% url 'core:unsave_game' game.id %}">
-        {% csrf_token %}
-        <button class="btn btn-outline-danger btn-sm">Remove ✖️</button>
-      </form>
-    </div>
+{% block content %}
+
+<div class="row">
+
+  <div class="col-md-6">
+    <h3>🎮 Played Games</h3>
+
+    {% for saved in played_games %}
+      <div class="card mb-2">
+        <div class="card-body">
+          <a href="{% url 'core:game_detail' saved.game.id %}">
+            <strong>{{ saved.game.title }}</strong>
+          </a>
+        </div>
+      </div>
+    {% empty %}
+      <p>No played games yet.</p>
+    {% endfor %}
   </div>
-{% empty %}
-  <p>You haven't saved any titles yet. Try the Recommend or Search pages!</p>
-{% endfor %}
+
+  <div class="col-md-6">
+    <h3>📌 Saved Games</h3>
+
+    {% for saved in saved_games %}
+      <div class="card mb-2">
+        <div class="card-body d-flex justify-content-between">
+          <a href="{% url 'core:game_detail' saved.game.id %}">
+            <strong>{{ saved.game.title }}</strong>
+          </a>
+
+          <form method="post" action="{% url 'core:unsave_game' saved.game.id %}">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-danger">Remove ❌</button>
+          </form>
+        </div>
+      </div>
+    {% empty %}
+      <p>No saved games yet.</p>
+    {% endfor %}
+  </div>
+
+</div>
+
 {% endblock %}
