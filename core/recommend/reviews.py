@@ -11,7 +11,6 @@ def add_review_1(request, game_id):
     text = request.POST.get('review_text', '')
 
     if score is None:
-        # Optionally handle missing score
         return redirect('review_form', game_id=game.id)
 
     review, created = Review.objects.get_or_create(

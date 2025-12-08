@@ -1,11 +1,14 @@
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from django.core.cache import cache
+import pickle
 import pandas as pd
 #from surprise import Dataset, Reader, SVD
 from core.models import Game, Likes, Review, SavedGame
 import numpy as np
 
-THRESHOLD = 2  #minimum reviews needed for collaborative
+THRESHOLD = 10  #minimum reviews needed for collaborative
+
+TFIDF_PATH = "tfidf_cache.pkl"
 
 def recommend_next(user):
     interaction_count = (Likes.objects.filter(user=user).count() + Review.objects.filter(user=user).count())
@@ -19,29 +22,70 @@ def recommend_next(user):
     #     recommendations = blend_scores(content_scores, collab_scores)
     #     return recommendations
 
-def recommend_content_based(user, top_n=10):
-    games = Game.objects.all()
-    corpus = [f"{g.genre} {g.title} {g.platform}" for g in games]
-    vec = TfidfVectorizer().fit_transform(corpus)
+def recommend_content_based(user, top_n=20):
+    interaction_count = Likes.objects.filter(user=user).count() + SavedGame.objects.filter(user=user).count()
 
-    liked_idxs = [i for i, g in enumerate(games) if g.user_vote(user) == Likes.LIKE]
-    seen_ids = set(g.id for g in games if g.user_vote(user) is not None)
+    cache_key = f"recs_{user.id}_{interaction_count}"
+
+    cached = cache.get(cache_key)
+    if cached:
+        return cached
+
+    with open(TFIDF_PATH, "rb") as f:
+        vectorizer, matrix, game_ids = pickle.load(f)
+
+    id_to_idx = {gid: i for i, gid in enumerate(game_ids)}
+
+    user_likes = Likes.objects.filter(user=user, vote=Likes.LIKE)
+    liked_idxs = [id_to_idx[l.game_id] for l in user_likes if l.game_id in id_to_idx]
+
+    saved_ids = set(
+        SavedGame.objects
+        .filter(user=user)
+        .values_list("game_id", flat=True)
+    )
+
+    voted_ids = set(
+        Likes.objects
+        .filter(user=user)
+        .values_list("game_id", flat=True)
+    )
+
+    exclude_ids = saved_ids | voted_ids
 
     if not liked_idxs:
-        random_games = Game.objects.exclude(id__in=seen_ids).order_by("?")[:top_n]
-        return [(g, 0) for g in random_games]
+        random_games = (
+            Game.objects
+            .exclude(id__in=exclude_ids)
+            .order_by("?")[:top_n]
+        )
+        results = [(g, 0.0) for g in random_games]
+        cache.set(cache_key, results, timeout=300)
+        return results
 
-    profile = vec[liked_idxs].mean(axis=0)
-    sims = cosine_similarity(np.asarray(profile), vec).flatten()
+    profile = np.asarray(matrix[liked_idxs].mean(axis=0))
 
-    # pair and remove already seen
-    results = [
-        (g, s) for g, s in zip(games, sims)
-        if g.id not in seen_ids
-    ]
+    sims = cosine_similarity(profile, matrix).flatten()
 
-    return sorted(results, key=lambda x: -x[1])[:top_n]
+    ranked = sorted(
+        [
+            (game_ids[i], sims[i])
+            for i in range(len(game_ids))
+            if game_ids[i] not in exclude_ids
+        ],
+        key=lambda x: -x[1]
+    )
 
+    top_game_ids = [gid for gid, _ in ranked[:top_n]]
+
+    games = list(Game.objects.filter(id__in=top_game_ids))
+
+    id_to_score = dict(ranked[:top_n])
+    results = [(g, id_to_score.get(g.id, 0)) for g in games]
+
+    cache.set(cache_key, results, timeout=300)
+
+    return results
 
 # def recommend_collaborative(user, top_n=10):
 #     reviews = Review.objects.all().values_list('user_id', 'game_id', 'score')

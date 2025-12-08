@@ -1,31 +1,43 @@
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from core.models.games import Game
+from django.db.models import Count, Q
 from django.http import HttpResponseNotAllowed
 from core.recommend.reviews import add_review_1
 from core.recommend.likes import toggle_preference
 from core.recommend.utils import recommend_next
 from core.saved.services import save_game_for_user, remove_game_for_user
-from core.search.search import search_games_keyword
+from core.search.search import search_games_either
 
 def home(request):
     if request.user.is_authenticated:
         saved_ids = list(request.user.savedgame_set.values_list("game_id", flat=True))
         games = Game.objects.filter(id__in=saved_ids)
     else:
-        games = Game.objects.all()
+        games = Game.objects.all()[:100]
     return render(request, "home.html", {"games": games})
 
 @login_required
 def search_games(request):
     q = request.GET.get("q", "")
-    games = search_games_keyword(q)
+    games = search_games_either(q)
     return render(request, "search.html", {"games": games, "query": q})
 
 @login_required
 def recommend_game(request):
     recommendations = recommend_next(request.user)
-    games = [g for g, _ in recommendations] if recommendations else []
+    if not recommendations:
+        return render(request, "recommend.html", {"games": []})
+    game_ids = [g.id for g, _ in recommendations]
+    games = (
+        Game.objects
+        .filter(id__in=game_ids)
+        .prefetch_related(
+            "genres",
+            "platforms",
+            "developers",
+        )
+    )
     return render(request, "recommend.html", {"games": games})
 
 @login_required
@@ -41,9 +53,18 @@ def add_review(request, game_id):
 
 @login_required
 def game_detail(request, game_id):
-    game = get_object_or_404(Game, id=game_id)
-    ctx = game.context_for_user(request.user)
-    return render(request, "game_detail.html", ctx)
+    game = (
+        Game.objects
+        .prefetch_related(
+            "genres",
+            "platforms",
+            "developers",
+            "likes",
+        )
+        .get(id=game_id)
+    )
+    context = game.context_for_user(request.user)
+    return render(request, "game_detail.html", context)
 
 @login_required
 def add_game(request, game_id):

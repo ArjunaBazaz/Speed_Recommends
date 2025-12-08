@@ -16,3 +16,7 @@ Before you start, make sure you have:
 
   ```bash
   pipx install poetry
+
+## Credits
+
+Original data source for games was https://www.kaggle.com/datasets/gsimonx37/backloggd which is scrapped from https://backloggd.com/

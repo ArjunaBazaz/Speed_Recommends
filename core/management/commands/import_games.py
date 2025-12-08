@@ -1,44 +1,56 @@
+import csv
 from django.core.management.base import BaseCommand
 from core.models.games import Game
-import csv
-import datetime
-from decimal import Decimal
+from core.models.game_info import Genre, Platform, Developer
+
 
 class Command(BaseCommand):
-    help = 'Import games from a CSV file'
+    help = "Load games from a CSV file"
 
     def add_arguments(self, parser):
-        parser.add_argument('csv_path', type=str)
+        parser.add_argument("csv_file", type=str)
 
     def handle(self, *args, **kwargs):
-        csv_path = kwargs['csv_path']
+        csv_file = kwargs["csv_file"]
 
-        with open(csv_path, newline='', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile)
-            count = 0
+        with open(csv_file, newline="", encoding="utf-8") as file:
+            reader = csv.DictReader(file)
+
+            x = 0
+
             for row in reader:
-                if count >= 100:
-                    break
+                title = row["title"].strip()
 
-                release_year = row.get('Release Year', '').strip()
-                if release_year.isdigit():
-                    release_date = datetime.date(int(release_year), 1, 1)
-                else:
-                    release_date = None
-
-                # Convert price properly
-                try:
-                    price = Decimal(row['price'].strip())
-                except Exception:
-                    price = Decimal('0.00')  # or skip the row if invalid
-
-                Game.objects.create(
-                    title=row['Game Title'].strip(),
-                    genre=row['Genre'].strip(),
-                    price=price,
-                    release_date=release_date,
-                    platform=row['Platform'].strip()
+                game, created = Game.objects.get_or_create(
+                    title=title,
+                    defaults={
+                        "description": row.get("description", ""),
+                        "release_date": row.get("release_date") or None,
+                        "release_year": row.get("release_year") or None,
+                        "baseline_score": float(row.get("baseline_score", 0)),
+                    },
                 )
-                count += 1
 
-            self.stdout.write(self.style.SUCCESS(f'Imported {count} games'))
+                #GENRES (ManyToMany)
+                genre_names = [g.strip() for g in row["genres"].split(",")]
+                for name in genre_names:
+                    genre, _ = Genre.objects.get_or_create(name=name)
+                    game.genres.add(genre)
+
+                #PLATFORMS (ManyToMany)
+                platform_names = [p.strip() for p in row["platforms"].split(",")]
+                for name in platform_names:
+                    platform, _ = Platform.objects.get_or_create(name=name)
+                    game.platforms.add(platform)
+
+                #DEVELOPERS (ManyToMany)
+                dev_names = [d.strip() for d in row["developers"].split(",")]
+                for name in dev_names:
+                    dev, _ = Developer.objects.get_or_create(name=name)
+                    game.developers.add(dev)
+
+                game.save()
+
+                x+=1
+                if(x % 300 == 0):
+                    self.stdout.write(f"Imported {x} games...")

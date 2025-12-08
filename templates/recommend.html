@@ -1,27 +1,84 @@
 {% extends "base.html" %}
 {% block title %}Recommend{% endblock %}
+
 {% block content %}
+
   {% if games %}
     {% with game=games.0 %}
       <div class="card">
-        <div class="card-body">
-          <h3>{{ game.title }}</h3>
-          <p><strong>Genre:</strong> {{ game.genre }}</p>
-          <p><strong>Platform:</strong> {{ game.platform }}</p>
+        <div class="card-body text-center">
 
-          <form class="d-inline" method="post"
-                action="{% url 'core:toggle_game_like' game.id 'like' %}">
-            {% csrf_token %}<button class="btn btn-success">👍 Like</button>
-          </form>
+          <h3 class="mb-3">{{ game.title }}</h3>
 
-          <form class="d-inline" method="post"
-                action="{% url 'core:toggle_game_like' game.id 'dislike' %}">
-            {% csrf_token %}<button class="btn btn-danger">👎 Dislike</button>
-          </form>
+          <p>
+            <strong>Genres:</strong>
+            {% for genre in game.genres.all %}
+              {{ genre.name }}{% if not forloop.last %}, {% endif %}
+            {% empty %}
+              None listed
+            {% endfor %}
+          </p>
+
+          <div class="my-3">
+            <form class="d-inline" method="post"
+                  action="{% url 'core:toggle_game_like' game.id 'like' %}">
+              {% csrf_token %}
+              <button class="btn btn-success">👍 Interested</button>
+            </form>
+
+            <form class="d-inline" method="post"
+                  action="{% url 'core:toggle_game_like' game.id 'dislike' %}">
+              {% csrf_token %}
+              <button class="btn btn-danger">👎 Not Interested</button>
+            </form>
+          </div>
+
+          <div class="mb-3">
+            <button
+              class="btn btn-outline-secondary"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#details-{{ game.id }}"
+              aria-expanded="false"
+              aria-controls="details-{{ game.id }}"
+            >
+              Show More Details
+            </button>
+          </div>
+
+          <div class="collapse" id="details-{{ game.id }}">
+
+            <p>
+              <strong>Platforms:</strong>
+              {% for platform in game.platforms.all %}
+                {{ platform.name }}{% if not forloop.last %}, {% endif %}
+              {% empty %}
+                None listed
+              {% endfor %}
+            </p>
+
+            <p>
+              <strong>Developers:</strong>
+              {% for dev in game.developers.all %}
+                {{ dev.name }}{% if not forloop.last %}, {% endif %}
+              {% empty %}
+                None listed
+              {% endfor %}
+            </p>
+
+            <p>
+              <strong>Description:</strong>
+              {{ game.description }}
+            </p>
+
+          </div>
+
         </div>
       </div>
     {% endwith %}
+
   {% else %}
-      <p>No more games to rate. Come back later!</p>
+    <p>No more games to rate. Come back later!</p>
   {% endif %}
+
 {% endblock %}

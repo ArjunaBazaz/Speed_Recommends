@@ -1,32 +1,89 @@
 {% extends "base.html" %}
 {% block title %}{{ game.title }}{% endblock %}
+
 {% block content %}
 <h2>{{ game.title }}</h2>
-<p><strong>Genre:</strong> {{ game.genre }} – <strong>Platform:</strong> {{ game.platform }}</p>
+
+<p>
+  <strong>Genres:</strong>
+  {% for genre in genres %}
+    {{ genre.name }}{% if not forloop.last %}, {% endif %}
+  {% empty %}
+    None listed
+  {% endfor %}
+</p>
+
+<p>
+  <strong>Platforms:</strong>
+  {% for platform in platforms %}
+    {{ platform.name }}{% if not forloop.last %}, {% endif %}
+  {% empty %}
+    None listed
+  {% endfor %}
+</p>
+
+<p>
+  <strong>Developers:</strong>
+  {% for dev in developers %}
+    {{ dev.name }}{% if not forloop.last %}, {% endif %}
+  {% empty %}
+    None listed
+  {% endfor %}
+</p>
+
+<p>
+  <strong>Average Baglogged Score:</strong>
+  {{ game.baseline_score|floatformat:2 }}
+</p>
+
+<p>
+  <strong>Description:</strong>
+  {{ game.description }}
+</p>
+
+<hr>
 
 {% if user.is_authenticated %}
   <h4>Your Review</h4>
   <form method="post" action="{% url 'core:add_review' game.id %}">
     {% csrf_token %}
+
     <div class="form-group">
       <label>Score (1-10):</label>
-      <input type="number" name="score" min="1" max="10" class="form-control" value="{{ user_review.score|default:'' }}">
+      <input
+        type="number"
+        name="score"
+        min="1"
+        max="10"
+        class="form-control"
+        value="{{ user_review.score|default:'' }}"
+      >
     </div>
+
     <div class="form-group">
-      <textarea name="review_text" class="form-control" placeholder="Write your review…">{{ user_review.text|default:'' }}</textarea>
+      <textarea
+        name="review_text"
+        class="form-control"
+        placeholder="Write your review…"
+      >{{ user_review.review_text|default:'' }}</textarea>
     </div>
+
     <button class="btn btn-primary">Save Review</button>
   </form>
 {% endif %}
 
 <hr>
+
 <h4>Other Reviews</h4>
+
 {% for r in reviews %}
   <div class="border p-2 mb-2">
-    <strong>{{ r.user.username }}</strong> – <em>{{ r.scores }}/10</em><br>
+    <strong>{{ r.user.username }}</strong>
+    - <em>{{ r.score }}/10</em><br>
     {{ r.review_text }}
   </div>
 {% empty %}
   <p>No reviews yet.</p>
 {% endfor %}
+
 {% endblock %}
