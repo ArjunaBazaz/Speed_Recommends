@@ -19,6 +19,11 @@
             {% endfor %}
           </p>
 
+          <p>
+            <strong>Release Date:</strong>
+            {{ game.release_date }}
+          </p>
+
           <div class="my-3">
             <form class="d-inline" method="post"
                   action="{% url 'core:toggle_game_like' game.id 'like' %}">

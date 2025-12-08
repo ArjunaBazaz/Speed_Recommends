@@ -5,6 +5,11 @@
 <h2>{{ game.title }}</h2>
 
 <p>
+  <strong>Release Date:</strong>
+  {{ game.release_date }}
+</p>
+
+<p>
   <strong>Genres:</strong>
   {% for genre in genres %}
     {{ genre.name }}{% if not forloop.last %}, {% endif %}
@@ -62,10 +67,10 @@
 
     <div class="form-group">
       <textarea
-        name="review_text"
+        name="text"
         class="form-control"
         placeholder="Write your review…"
-      >{{ user_review.review_text|default:'' }}</textarea>
+      >{{ user_review.text|default:'' }}</textarea>
     </div>
 
     <button class="btn btn-primary">Save Review</button>
@@ -80,7 +85,7 @@
   <div class="border p-2 mb-2">
     <strong>{{ r.user.username }}</strong>
     - <em>{{ r.score }}/10</em><br>
-    {{ r.review_text }}
+    {{ r.text }}
   </div>
 {% empty %}
   <p>No reviews yet.</p>
