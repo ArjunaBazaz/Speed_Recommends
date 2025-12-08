@@ -87,10 +87,10 @@ conn_string = f"postgres://{os.getenv('DB_USER')}:{quote_plus(os.getenv('DB_PASS
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    "default": dj_database_url.config(
-        default="sqlite:///db.sqlite3",
+    'default': dj_database_url.config(
+        default=conn_string,
         conn_max_age=600,
-        ssl_require=(os.getenv("DATABASE_URL") is not None),
+        ssl_require=IS_HEROKU
     )
 }
 

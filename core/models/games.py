@@ -4,14 +4,14 @@ from core.models.reviews import Likes
 from core.models.game_info import Genre, Platform, Developer
 
 class Game(models.Model):
-    title = models.CharField(max_length=200, verbose_name="Game Title")
+    title = models.CharField(max_length=200, verbose_name="Game Title", db_index=True)
     genres = models.ManyToManyField(Genre, related_name="games")
     developers = models.ManyToManyField(Developer, related_name="games")
     platforms = models.ManyToManyField(Platform, related_name="games")
-    release_date = models.DateField(null=True, blank=True)
+    release_date = models.DateField(null=True, blank=True, db_index=True)
     release_year = models.IntegerField(null=True, blank=True)
     description = models.TextField(blank=True)
-    baseline_score = models.FloatField(default=0.0)
+    baseline_score = models.FloatField(default=0.0, db_index=True)
 
     # Many-to-many with through model to hold votes
     likes = models.ManyToManyField(
