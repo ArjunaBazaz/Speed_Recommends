@@ -3,19 +3,76 @@
 
 {% block content %}
 
+<!-- ✅ Hidden CSRF token for AJAX -->
 <form id="csrf-form" style="display:none;">
   {% csrf_token %}
 </form>
 
-<form class="form-inline mb-3" method="get">
-  <input type="text"
-         name="q"
-         value="{{ query }}"
-         class="form-control mr-2"
-         placeholder="Search games…">
-  <button class="btn btn-primary">Search</button>
+<!-- ✅ ADVANCED SEARCH FORM -->
+<form method="get" class="mb-4">
+
+  <!-- ✅ SEARCH BAR -->
+  <div class="mb-3">
+    <input type="text"
+           name="q"
+           value="{{ query }}"
+           class="form-control"
+           placeholder="Search games…">
+  </div>
+
+  <div class="row">
+
+    <!-- ✅ GENRE FILTERS (MULTI SELECT) -->
+    <div class="col-md-6">
+      <strong>Genres</strong>
+      <div class="border p-2" style="max-height: 200px; overflow-y: auto;">
+        {% for g in genres %}
+          <div class="form-check">
+            <input class="form-check-input"
+                   type="checkbox"
+                   name="genres"
+                   value="{{ g.id }}"
+                   id="genre_{{ g.id }}"
+                   {% if g.id|stringformat:"s" in selected_genres %}checked{% endif %}>
+            <label class="form-check-label" for="genre_{{ g.id }}">
+              {{ g.name }}
+            </label>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- ✅ PLATFORM FILTERS (MULTI SELECT) -->
+    <div class="col-md-6">
+      <strong>Platforms</strong>
+      <div class="border p-2" style="max-height: 200px; overflow-y: auto;">
+        {% for p in platforms %}
+          <div class="form-check">
+            <input class="form-check-input"
+                   type="checkbox"
+                   name="platforms"
+                   value="{{ p.id }}"
+                   id="platform_{{ p.id }}"
+                   {% if p.id|stringformat:"s" in selected_platforms %}checked{% endif %}>
+            <label class="form-check-label" for="platform_{{ p.id }}">
+              {{ p.name }}
+            </label>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ✅ SUBMIT + CLEAR -->
+  <div class="mt-3 d-flex gap-2">
+    <button class="btn btn-primary">Apply Filters</button>
+    <a href="{% url 'core:search_games' %}" class="btn btn-secondary">Clear All</a>
+  </div>
+
 </form>
 
+<!-- ✅ SEARCH RESULTS -->
 {% for game in games %}
   <div class="card mb-2">
     <div class="card-body d-flex justify-content-between align-items-center">
@@ -26,6 +83,7 @@
         </a>
       </div>
 
+      <!-- ✅ AJAX SAVE / REMOVE BUTTON -->
       <button
         class="btn btn-sm {% if game.id in saved_ids %}btn-danger{% else %}btn-success{% endif %}"
         data-game-id="{{ game.id }}"
@@ -47,11 +105,12 @@
   <p>No games match your query.</p>
 {% endfor %}
 
+<!-- ✅ PAGINATION (FILTER-SAFE) -->
 <div class="d-flex justify-content-between mt-4">
 
   {% if page_obj.has_previous %}
     <a class="btn btn-outline-primary"
-       href="?q={{ query }}&page={{ page_obj.previous_page_number }}">
+       href="?{{ preserved_query }}&page={{ page_obj.previous_page_number }}">
        ← Previous
     </a>
   {% else %}
@@ -64,7 +123,7 @@
 
   {% if page_obj.has_next %}
     <a class="btn btn-outline-primary"
-       href="?q={{ query }}&page={{ page_obj.next_page_number }}">
+       href="?{{ preserved_query }}&page={{ page_obj.next_page_number }}">
        Next →
     </a>
   {% else %}
@@ -73,6 +132,7 @@
 
 </div>
 
+<!-- ✅ AJAX SCRIPT -->
 <script>
 function getCSRFToken() {
   const input = document.querySelector('[name=csrfmiddlewaretoken]');
@@ -110,7 +170,7 @@ function toggleSave(btn) {
       btn.classList.remove("btn-success");
       btn.classList.add("btn-danger");
       btn.dataset.saved = "1";
-    } 
+    }
     else if (data.status === "removed") {
       btn.innerText = "Add ➕";
       btn.classList.remove("btn-danger");
