@@ -21,10 +21,10 @@ with open(TFIDF_PATH, "rb") as f:
 ID_TO_IDX = {gid: i for i, gid in enumerate(TFIDF_GAME_IDS)}
 
 def recommend_next(user):
-    interaction_count = (Likes.objects.filter(user=user).count() + Review.objects.filter(user=user).count())
+    #interaction_count = (Likes.objects.filter(user=user).count() + Review.objects.filter(user=user).count())
     #if interaction_count < THRESHOLD:
-    if interaction_count < interaction_count+1:
-        return recommend_content_based(user)
+    #if interaction_count < interaction_count+1:
+    return recommend_content_based(user)
     # else:
     #     # hybrid or pure collaborative
     #     content_scores = recommend_content_based(user)
@@ -32,7 +32,7 @@ def recommend_next(user):
     #     recommendations = blend_scores(content_scores, collab_scores)
     #     return recommendations
 
-def recommend_content_based(user, top_n=20, candidate_k=150):
+def recommend_content_based(user, top_n=20, candidate_k=500):
     interaction_count = (
         Likes.objects.filter(user=user).count()
         + SavedGame.objects.filter(user=user).count()
@@ -48,12 +48,12 @@ def recommend_content_based(user, top_n=20, candidate_k=150):
 
     id_to_idx = ID_TO_IDX
 
-    # ✅ Likes → profile
+    #Likes → profile
     user_likes = Likes.objects.filter(user=user, vote=Likes.LIKE)
     liked_game_ids = [l.game_id for l in user_likes if l.game_id in id_to_idx]
     liked_idxs = [id_to_idx[gid] for gid in liked_game_ids]
 
-    # ✅ Exclusions
+    #Exclusions
     saved_ids = set(
         SavedGame.objects.filter(user=user)
         .values_list("game_id", flat=True)
@@ -64,7 +64,7 @@ def recommend_content_based(user, top_n=20, candidate_k=150):
     )
     exclude_ids = saved_ids | voted_ids
 
-    # ✅ FAST COLD START (NO order_by("?"))
+    #FAST COLD START (NO order_by("?"))
     if not liked_idxs:
         candidate_ids = list(
             Game.objects.exclude(id__in=exclude_ids)
@@ -81,7 +81,7 @@ def recommend_content_based(user, top_n=20, candidate_k=150):
         cache.set(cache_key, results, timeout=300)
         return results
 
-    # ✅ BUILD TF-IDF PROFILE (CACHED)
+    #BUILD TF-IDF PROFILE (CACHED)
     profile_cache_key = f"profile_{user.id}_{interaction_count}"
     profile = cache.get(profile_cache_key)
 
@@ -89,7 +89,7 @@ def recommend_content_based(user, top_n=20, candidate_k=150):
         profile = np.asarray(matrix[liked_idxs].mean(axis=0))
         cache.set(profile_cache_key, profile, timeout=3600)
 
-    # ✅ FAST PYTHON RANDOM SAMPLING (NO order_by("?"))
+    #FAST PYTHON RANDOM SAMPLING (NO order_by("?"))
     eligible_ids = [gid for gid in game_ids if gid not in exclude_ids]
 
     candidate_ids = random.sample(
@@ -100,16 +100,17 @@ def recommend_content_based(user, top_n=20, candidate_k=150):
     candidates = list(
         Game.objects
         .filter(id__in=candidate_ids)
+        .only("id", "title", "release_year", "baseline_score")
         .prefetch_related("genres", "platforms", "developers")
     )
 
-    # ✅ TF-IDF ONLY FOR CANDIDATES (NOT FULL MATRIX)
+    #TF-IDF ONLY FOR CANDIDATES (NOT FULL MATRIX)
     candidate_idxs = [id_to_idx[g.id] for g in candidates if g.id in id_to_idx]
     candidate_vectors = matrix[candidate_idxs]
 
     candidate_sims = cosine_similarity(profile, candidate_vectors).flatten()
 
-    # ✅ User attribute profile
+    #User attribute profile
     liked_games = list(
         Game.objects
         .filter(id__in=liked_game_ids)
@@ -125,13 +126,21 @@ def recommend_content_based(user, top_n=20, candidate_k=150):
 
     scored = []
 
+    cand_genre_ids = []
+    cand_platform_ids = []
+    cand_dev_ids = []
+
+    for g in candidates:
+        cand_genre_ids.append({x.id for x in g.genres.all()})
+        cand_platform_ids.append({x.id for x in g.platforms.all()})
+        cand_dev_ids.append({x.id for x in g.developers.all()})
+
     for i, g in enumerate(candidates):
         tfidf_score = candidate_sims[i]
 
-        genre_overlap = len(user_genres & set(g.genres.values_list("id", flat=True)))
-        platform_overlap = len(user_platforms & set(g.platforms.values_list("id", flat=True)))
-        dev_overlap = len(user_devs & set(g.developers.values_list("id", flat=True)))
-
+        genre_overlap = len(user_genres & cand_genre_ids[i])
+        platform_overlap = len(user_platforms & cand_platform_ids[i])
+        dev_overlap = len(user_devs & cand_dev_ids[i])
         attribute_score = (
             0.5 * genre_overlap
             + 0.3 * platform_overlap
@@ -155,10 +164,25 @@ def recommend_content_based(user, top_n=20, candidate_k=150):
 
         scored.append((g, final_score))
 
-    # ✅ Rank
+    #Rank
     scored.sort(key=lambda x: -x[1])
 
-    # ✅ DIVERSIFICATION
+    #DIVERSIFICATION
+    diversified = []
+    seen_titles = set()
+    seen_devs = set()
+
+    title_key_by_id = {
+        g.id: g.title.lower().split(":", 1)[0].strip()
+        for g in candidates
+    }
+
+    primary_dev_by_id = {}
+    for g in candidates:
+        # uses prefetched developers without QuerySet values_list
+        devs = list(g.developers.all())
+        primary_dev_by_id[g.id] = devs[0].id if devs else None
+
     diversified = []
     seen_titles = set()
     seen_devs = set()
@@ -167,20 +191,23 @@ def recommend_content_based(user, top_n=20, candidate_k=150):
         if len(diversified) >= top_n:
             break
 
-        base_title = g.title.lower().split(":")[0]
-        dev_ids = tuple(g.developers.values_list("id", flat=True))
+        base_title = title_key_by_id.get(g.id, "")
+        dev_id = primary_dev_by_id.get(g.id)
 
-        if base_title in seen_titles:
+        if base_title and base_title in seen_titles:
             continue
-        if dev_ids and dev_ids[0] in seen_devs:
+        if dev_id is not None and dev_id in seen_devs:
             continue
 
-        seen_titles.add(base_title)
-        seen_devs.add(dev_ids[0] if dev_ids else None)
+        if base_title:
+            seen_titles.add(base_title)
+        if dev_id is not None:
+            seen_devs.add(dev_id)
 
         diversified.append((g, score))
 
     cache.set(cache_key, diversified, timeout=300)
+
     return diversified
 
 
