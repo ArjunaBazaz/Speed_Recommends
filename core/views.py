@@ -9,7 +9,9 @@ from core.recommend.reviews import add_review_1
 from core.recommend.likes import toggle_preference
 from core.recommend.utils import recommend_next
 from core.saved.services import save_game_for_user, remove_game_for_user
-from core.search.search import search_games_either, run_ai_search
+from core.search.search import search_games_keyword
+from core.ai.interpret import interpret_prompt_to_spec
+from core.ai.execute import run_spec
 from core.models.game_info import Genre, Platform
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -52,55 +54,48 @@ def home(request):
 
 @login_required
 def ai_search(request):
-    """
-    Stub AI search endpoint.
-    Replace the body of this with your real AI search logic later.
-    """
-    query = ""
+    prompt = ""
+    spec = None
     results = []
     error = None
 
-    if request.method == "POST":
-        query = (request.POST.get("prompt") or "").strip()
+    saved_ids = set(
+        SavedGame.objects
+        .filter(user=request.user)
+        .values_list("game_id", flat=True)
+    )
 
-        if not query:
+    if request.method == "POST":
+        prompt = (request.POST.get("prompt") or "").strip()
+        if not prompt:
             error = "Please enter a prompt."
         else:
-            results = run_ai_search(query, user=request.user)
+            spec = interpret_prompt_to_spec(prompt)
+            results = list(run_spec(spec))
 
     return render(request, "ai_search.html", {
-        "prompt": query,
+        "prompt": prompt,
+        "spec": spec,
         "results": results,
         "error": error,
+        "saved_ids": saved_ids,
     })
 
 @login_required
 def search_games(request):
+
     query = request.GET.get("q", "")
     page_number = request.GET.get("page", 1)
 
     selected_genres = request.GET.getlist("genres")
     selected_platforms = request.GET.getlist("platforms")
 
-    qs = Game.objects.only("id", "title")
-
-    if query:
-        qs = qs.filter(
-            Q(title__icontains=query) |
-            Q(genres__name__icontains=query) |
-            Q(platforms__name__icontains=query)
-        )
-
-    if selected_genres:
-        qs = qs.filter(genres__id__in=selected_genres)
-
-    if selected_platforms:
-        qs = qs.filter(platforms__id__in=selected_platforms)
-
-    qs = qs.distinct().order_by("title")
-
-    paginator = Paginator(qs, 100)
-    page_obj = paginator.get_page(page_number)
+    page_obj = search_games_keyword(
+        query,
+        page_number,
+        selected_genres,
+        selected_platforms,
+    )
 
     saved_ids = set(
         SavedGame.objects
