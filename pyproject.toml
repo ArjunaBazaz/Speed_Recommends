@@ -21,6 +21,7 @@ gunicorn = "^21.2"
 whitenoise = "^6.6"
 psycopg2-binary = "^2.9"
 requests = "^2.32"
+pydantic = ">=2,<3"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

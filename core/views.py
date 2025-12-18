@@ -9,7 +9,7 @@ from core.recommend.reviews import add_review_1
 from core.recommend.likes import toggle_preference
 from core.recommend.utils import recommend_next
 from core.saved.services import save_game_for_user, remove_game_for_user
-from core.search.search import search_games_either
+from core.search.search import search_games_either, run_ai_search
 from core.models.game_info import Genre, Platform
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -49,6 +49,30 @@ def home(request):
         )
     else:
         return render(request, "home.html", {"games": Game.objects.all()[:100]})
+
+@login_required
+def ai_search(request):
+    """
+    Stub AI search endpoint.
+    Replace the body of this with your real AI search logic later.
+    """
+    query = ""
+    results = []
+    error = None
+
+    if request.method == "POST":
+        query = (request.POST.get("prompt") or "").strip()
+
+        if not query:
+            error = "Please enter a prompt."
+        else:
+            results = run_ai_search(query, user=request.user)
+
+    return render(request, "ai_search.html", {
+        "prompt": query,
+        "results": results,
+        "error": error,
+    })
 
 @login_required
 def search_games(request):

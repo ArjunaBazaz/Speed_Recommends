@@ -27,3 +27,9 @@ def search_games_keyword(query: str, page_number: str, selected_genre: str, sele
 
     paginator = Paginator(qs, 100)
     return paginator.get_page(page_number)
+
+def run_ai_search(query: str, user):
+    # Placeholder for AI search logic
+    # This function should interface with an AI model to get search results
+    # For now, it returns an empty list
+    return ["placeholder result 1", "placeholder result 2"]

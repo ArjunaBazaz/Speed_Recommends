@@ -7,6 +7,7 @@ app_name = "core"
 urlpatterns = [
     path("recommend/", views.recommend_game, name="recommend_game"),
     path("search/", views.search_games, name="search_games"),
+    path("ai-search/", views.ai_search, name="ai_search"),
     path("", views.home, name="home"),
     path('game/<int:game_id>/review/', views.add_review, name='add_review'),
     path("game/<int:game_id>/save/", views.add_game, name="save_game"),

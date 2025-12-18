@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}AI Search{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">🤖 AI Search</h2>
+  <a class="btn btn-outline-primary" href="{% url 'core:search_games' %}">
+    ← Back to Search
+  </a>
+</div>
+
+<form method="post" class="mb-4">
+  {% csrf_token %}
+
+  <div class="mb-3">
+    <label for="prompt" class="form-label"><strong>Describe what you want</strong></label>
+    <textarea
+      id="prompt"
+      name="prompt"
+      class="form-control"
+      rows="7"
+      placeholder="Example: Recommend a co-op RPG on PC with crafting, preferably released after 2018…"
+    >{{ prompt|default:"" }}</textarea>
+  </div>
+
+  <button class="btn btn-dark">Search with AI</button>
+</form>
+
+{% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+{% if results %}
+  <h4>Results</h4>
+  <ul class="list-group">
+    {% for r in results %}
+      <li class="list-group-item">{{ r }}</li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
+{% endblock %}
